@@ -1,0 +1,52 @@
+
+name: Build AEGNUS OS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install ISO tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorriso
+
+      - name: Download Ubuntu Desktop
+        run: |
+          ISO=ubuntu-24.04.5.1-desktop-amd64.iso
+          URL=https://releases.ubuntu.com/24.04/$ISO
+          curl -fL "$URL" -o "$ISO"
+          curl -fL https://releases.ubuntu.com/24.04/SHA256SUMS -o SHA256SUMS
+          grep " $ISO$" SHA256SUMS | sha256sum -c -
+
+      - name: Add AEGNUS branding
+        run: |
+          cat > AEGNUS-INFO.txt <<'EOF'
+          AEGNUS OS
+          Version: 0.1 Prototype
+          Base: Ubuntu 24.04 LTS Desktop
+          Architecture: AMD64
+          Project: AEGNUS OS
+          This is an early branded prototype.
+          EOF
+
+          xorriso \
+            -indev ubuntu-24.04.5.1-desktop-amd64.iso \
+            -outdev aegnus-os-0.1.iso \
+            -map AEGNUS-INFO.txt /AEGNUS-INFO.txt \
+            -volid AEGNUS_OS \
+            -boot_image any replay \
+            -commit
+
+      - name: Upload AEGNUS ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: AEGNUS-OS-ISO
+          path: aegnus-os-0.1.iso
+          retention-days: 7
+          
